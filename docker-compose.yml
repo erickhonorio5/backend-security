@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres
+    container_name: rct-security
+    hostname: rct-security
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: securitydb
+    networks:
+      - rct-network
+    ports:
+      - "5432:5432"
+    restart: always
+    volumes:
+      - './pg_db:/var/lib/postgresql'
+      - './pg_data:/var/lib/postgresql/data'
+    labels:
+      description: "Banco PostgreSQL para sistema de autenticação e segurança"
+
+networks:
+  rct-network:
+    driver: bridge
