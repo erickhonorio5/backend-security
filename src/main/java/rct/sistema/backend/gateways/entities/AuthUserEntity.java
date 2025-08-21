@@ -45,6 +45,9 @@ public class AuthUserEntity {
     private String email;
 
     @Column(nullable = false)
+    private String fullname;
+
+    @Column(nullable = false)
     private String password;
 
     @ElementCollection(fetch = FetchType.EAGER)

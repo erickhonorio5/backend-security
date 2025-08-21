@@ -2,6 +2,7 @@ package rct.sistema.backend.usecases.AuthUserUseCase;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import rct.sistema.backend.domain.AuthUser;
 import rct.sistema.backend.exceptions.BusinessException;
@@ -16,6 +17,7 @@ import java.util.Objects;
 public class AuthUserUseCase {
 
     private final AuthUserGateway authUserGateway;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthUser save(final AuthUser authUser) {
         if (Objects.isNull(authUser)) {
@@ -24,6 +26,10 @@ public class AuthUserUseCase {
         }
 
         log.info("Iniciando processo de salvamento do usuário: {}", authUser.getUsername());
+
+        // Criptografando a senha antes de salvar
+        authUser.setPassword(passwordEncoder.encode(authUser.getPassword()));
+
         var savedUser = authUserGateway.save(authUser);
         log.info("Usuário salvo com sucesso: ID {}", savedUser.getId());
         return savedUser;

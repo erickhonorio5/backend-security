@@ -23,6 +23,7 @@ public class AuthUser {
     private Long id;
     private String username;
     private String email;
+    private String fullname;
     private String password;
     private Set<RoleType> roles;
     private boolean isActive;
