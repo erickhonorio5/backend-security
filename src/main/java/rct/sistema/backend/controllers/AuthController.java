@@ -4,17 +4,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import rct.sistema.backend.controllers.dto.request.LoginRequestDTO;
-import rct.sistema.backend.controllers.dto.response.TokenResponseDTO;
-import rct.sistema.backend.security.jwt.JwtTokenProvider;
+import rct.sistema.backend.controllers.dto.request.RegisterRequestDTO;
+import rct.sistema.backend.controllers.dto.response.JwtAuthResponse;
+import rct.sistema.backend.usecases.AuthUserUseCase.AuthenticateFacade;
 
 @Slf4j
 @RestController
@@ -22,24 +19,19 @@ import rct.sistema.backend.security.jwt.JwtTokenProvider;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthenticateFacade authUserFacade;
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponseDTO> authenticateUser(@Valid @RequestBody LoginRequestDTO loginRequest) {
-        log.info("Iniciando processo de autenticação para o usuário: {}", loginRequest.getUsername());
+    public ResponseEntity<JwtAuthResponse> authenticateUser(@Valid @RequestBody LoginRequestDTO loginRequest) {
+        log.info("Recebida requisição de autenticação para o usuário: {}", loginRequest.getUsername());
+        var response = authUserFacade.authenticateUser(loginRequest);
+        return ResponseEntity.ok(response);
+    }
 
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                loginRequest.getUsername(),
-                loginRequest.getPassword()
-            )
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtTokenProvider.createToken(authentication);
-
-        log.info("Usuário autenticado com sucesso: {}", loginRequest.getUsername());
-        return ResponseEntity.ok(new TokenResponseDTO(jwt, loginRequest.getUsername()));
+    @PostMapping("/register")
+    public ResponseEntity<JwtAuthResponse> registerUser(@Valid @RequestBody RegisterRequestDTO registerRequest) {
+        log.info("Recebida requisição de registro para o usuário: {}", registerRequest.getUsername());
+        var response = authUserFacade.registerUser(registerRequest);
+        return ResponseEntity.ok(response);
     }
 }

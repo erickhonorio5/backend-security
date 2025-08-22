@@ -1,8 +1,8 @@
 services:
   db:
     image: postgres
-    container_name: rct-security
-    hostname: rct-security
+    container_name: rct-security-db
+    hostname: rct-security-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

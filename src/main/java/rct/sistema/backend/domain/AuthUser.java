@@ -26,7 +26,6 @@ public class AuthUser {
     private String fullname;
     private String password;
     private Set<RoleType> roles;
-    private boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

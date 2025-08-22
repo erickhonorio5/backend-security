@@ -56,9 +56,6 @@ public class AuthUserEntity {
     @Column(name = "role")
     private Set<RoleType> roles;
 
-    @Column(name = "is_active")
-    private boolean isActive;
-
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

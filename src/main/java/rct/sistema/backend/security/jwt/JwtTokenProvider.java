@@ -1,96 +1,106 @@
 package rct.sistema.backend.security.jwt;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.stream.Collectors;
-import javax.crypto.SecretKey;
 
 @Slf4j
 @Component
 public class JwtTokenProvider {
 
-    private final SecretKey key;
+    private static final String AUTHORITIES_KEY = "auth";
+
+    @Value("${jwt.secret}")
+    private String jwtSecret;
 
     @Value("${jwt.expiration}")
-    private long validityInMilliseconds;
+    private long jwtExpirationMs;
 
     @Value("${jwt.issuer}")
     private String issuer;
 
-    public JwtTokenProvider(@Value("${jwt.secret}") String secret) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    private Key getSigningKey() {
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String createToken(Authentication authentication) {
-        String username = authentication.getName();
-        Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        Claims claims = Jwts.claims().setSubject(username);
-
-        if (!authorities.isEmpty()) {
-            claims.put("auth", authorities.stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.joining(",")));
-        }
-
-        Date now = new Date();
-        Date validity = new Date(now.getTime() + validityInMilliseconds);
+    public String generateToken(Authentication authentication) {
+        String authorities = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.joining(","));
 
         return Jwts.builder()
-                .setClaims(claims)
+                .setSubject(authentication.getName())
+                .claim(AUTHORITIES_KEY, authorities)
+                .setIssuedAt(new Date())
                 .setIssuer(issuer)
-                .setIssuedAt(now)
-                .setExpiration(validity)
-                .signWith(key, SignatureAlgorithm.HS256)
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
 
     public Authentication getAuthentication(String token) {
-        Claims claims = extractClaims(token);
+        Claims claims = extractAllClaims(token);
 
-        String authoritiesString = claims.get("auth", String.class);
-        Collection<? extends GrantedAuthority> authorities = authoritiesString != null && !authoritiesString.isEmpty()
-                ? Arrays.stream(authoritiesString.split(","))
+        Collection<? extends GrantedAuthority> authorities =
+                Arrays.stream(claims.get(AUTHORITIES_KEY).toString().split(","))
+                        .filter(auth -> !auth.trim().isEmpty())
                         .map(SimpleGrantedAuthority::new)
-                        .collect(Collectors.toList())
-                : java.util.Collections.emptyList();
+                        .collect(Collectors.toList());
 
-        User principal = new User(claims.getSubject(), "", authorities);
+        UserDetailsImpl principal = new UserDetailsImpl(claims.getSubject(), "", authorities);
+
         return new UsernamePasswordAuthenticationToken(principal, token, authorities);
     }
 
     public boolean validateToken(String token) {
         try {
-            Claims claims = extractClaims(token);
-            return !claims.getExpiration().before(new Date());
-        } catch (JwtException | IllegalArgumentException e) {
-            log.error("Token JWT expirado ou inválido: {}", e.getMessage());
-            return false;
+            Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token);
+            return true;
+        } catch (SignatureException e) {
+            log.error("Invalid JWT signature: {}", e.getMessage());
+        } catch (MalformedJwtException e) {
+            log.error("Invalid JWT token: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.error("JWT token is expired: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            log.error("JWT token is unsupported: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("JWT claims string is empty: {}", e.getMessage());
         }
+        return false;
     }
 
-    public String getUsername(String token) {
-        return extractClaims(token).getSubject();
+    public String getUsernameFromToken(String token) {
+        return extractAllClaims(token).getSubject();
     }
 
-    private Claims extractClaims(String token) {
+    private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
