@@ -4,9 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import rct.sistema.backend.domain.enums.RoleType;
-
-import java.util.Set;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -14,9 +12,7 @@ import java.util.Set;
 @NoArgsConstructor
 public class JwtAuthResponse {
     private String token;
+    private String refreshToken;
     private String type = "Bearer";
-    private String username;
-    private String email;
-    private String fullname;
-    private Set<RoleType> roles;
+    private LocalDateTime expireAt;
 }

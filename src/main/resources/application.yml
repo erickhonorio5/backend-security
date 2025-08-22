@@ -27,5 +27,9 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET:5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437}
-  expiration: ${JWT_EXPIRATION:86400000} # 24 horas em milissegundos
+  expiration: ${JWT_EXPIRATION:1800000} # 30 minutos em milissegundos
   issuer: ${JWT_ISSUER:Sistema}
+
+security:
+  refresh-token:
+    expiration-days: ${REFRESH_TOKEN_EXPIRATION_DAYS:30} # 30 dias para o refresh token
