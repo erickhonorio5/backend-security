@@ -9,6 +9,7 @@ import rct.sistema.backend.exceptions.EntityConflictException;
 import rct.sistema.backend.exceptions.InvalidCredentialsException;
 import rct.sistema.backend.exceptions.NoChangesException;
 import rct.sistema.backend.exceptions.PermissionDeniedException;
+import rct.sistema.backend.exceptions.UnauthorizedException;
 import rct.sistema.backend.exceptions.UserNotFoundException;
 
 import javax.naming.NoPermissionException;
@@ -32,6 +33,18 @@ public class RestExceptionHandler {
                 .devMsg(ex.getClass().getName())
                 .status(NOT_FOUND.value())
                 .title("User not found!")
+                .build();
+    }
+
+    @ResponseStatus(UNAUTHORIZED)
+    @ExceptionHandler(UnauthorizedException.class)
+    public ExceptionFilters handleUnauthorized(final UnauthorizedException ex) {
+        return ExceptionFilters.builder()
+                .timestamp(LocalDateTime.now())
+                .details(ex.getMessage())
+                .devMsg(ex.getClass().getName())
+                .status(UNAUTHORIZED.value())
+                .title("Unauthorized")
                 .build();
     }
 
